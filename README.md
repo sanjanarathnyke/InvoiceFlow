@@ -99,4 +99,4 @@ Open your browser and visit **http://localhost:3000** (default port is `3000`).
 
 ## 🙋 Support
 
-This is a demo project — feel free to explore, adapt, and learn from it. Contributions and improvement ideas are welcome!
+This is This is an MVP — feel free to explore, adapt, and learn from it. Contributions and improvement ideas are welcome!
