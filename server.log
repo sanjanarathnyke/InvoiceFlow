@@ -1,0 +1,27 @@
+◇ injected env (5) from .env // tip: ⌘ enable debugging { debug: true }
+server is running on http://localhost:3000
+Executing (default): SELECT `id`, `userId`, `companyId`, `customerId`, `invoiceNumber`, `issueDate`, `dueDate`, `status`, `subtotal`, `tax`, `total`, `createdAt`, `updatedAt` FROM `invoices` AS `Invoice`;
+Executing (default): SELECT `id`, `userId`, `companyId`, `customerId`, `invoiceNumber`, `issueDate`, `dueDate`, `status`, `subtotal`, `tax`, `total`, `createdAt`, `updatedAt` FROM `invoices` AS `Invoice` WHERE `Invoice`.`id` = '1';
+Executing (default): INSERT INTO `invoices` (`id`,`userId`,`companyId`,`customerId`,`invoiceNumber`,`issueDate`,`dueDate`,`status`,`subtotal`,`tax`,`total`,`createdAt`,`updatedAt`) VALUES (DEFAULT,?,?,?,?,?,?,?,?,?,?,?,?);
+Executing (default): INSERT INTO `invoices` (`id`,`userId`,`companyId`,`customerId`,`invoiceNumber`,`issueDate`,`dueDate`,`status`,`subtotal`,`tax`,`total`,`createdAt`,`updatedAt`) VALUES (DEFAULT,?,?,?,?,?,?,?,?,?,?,?,?);
+Executing (default): INSERT INTO `invoices` (`id`,`userId`,`companyId`,`customerId`,`invoiceNumber`,`issueDate`,`dueDate`,`status`,`subtotal`,`tax`,`total`,`createdAt`,`updatedAt`) VALUES (DEFAULT,?,?,?,?,?,?,?,?,?,?,?,?);
+Executing (default): INSERT INTO `invoices` (`id`,`userId`,`companyId`,`customerId`,`invoiceNumber`,`issueDate`,`dueDate`,`status`,`subtotal`,`tax`,`total`,`createdAt`,`updatedAt`) VALUES (DEFAULT,?,?,?,?,?,?,?,?,?,?,?,?);
+Executing (default): INSERT INTO `invoices` (`id`,`userId`,`companyId`,`customerId`,`invoiceNumber`,`issueDate`,`dueDate`,`status`,`subtotal`,`tax`,`total`,`createdAt`,`updatedAt`) VALUES (DEFAULT,?,?,?,?,?,?,?,?,?,?,?,?);
+Executing (default): INSERT INTO `invoiceItems` (`id`,`invoiceId`,`productId`,`name`,`description`,`quantity`,`unitPrice`,`total`,`createdAt`,`updatedAt`) VALUES (NULL,7,1,'Laptop','Dell Inspiron 15',2,250000,500000,'2026-08-04 09:11:43','2026-08-04 09:11:43'),(NULL,7,2,'Wireless Mouse','Logitech M185',1,4500,4500,'2026-08-04 09:11:43','2026-08-04 09:11:43');
+Executing (default): SELECT `id`, `userId`, `companyId`, `customerId`, `invoiceNumber`, `issueDate`, `dueDate`, `status`, `subtotal`, `tax`, `total`, `createdAt`, `updatedAt` FROM `invoices` AS `Invoice`;
+Executing (default): SELECT `id`, `userId`, `companyId`, `customerId`, `invoiceNumber`, `issueDate`, `dueDate`, `status`, `subtotal`, `tax`, `total`, `createdAt`, `updatedAt` FROM `invoices` AS `Invoice` WHERE `Invoice`.`id` = '1';
+Executing (default): SELECT `id`, `userId`, `companyId`, `customerId`, `invoiceNumber`, `issueDate`, `dueDate`, `status`, `subtotal`, `tax`, `total`, `createdAt`, `updatedAt` FROM `invoices` AS `Invoice` WHERE `Invoice`.`id` = '7';
+Executing (default): SELECT `id`, `userId`, `companyId`, `customerId`, `invoiceNumber`, `issueDate`, `dueDate`, `status`, `subtotal`, `tax`, `total`, `createdAt`, `updatedAt` FROM `invoices` AS `Invoice` WHERE `Invoice`.`id` = '7';
+Executing (default): DELETE FROM `invoices` WHERE `id` = 7
+Executing (default): INSERT INTO `invoices` (`id`,`userId`,`companyId`,`customerId`,`invoiceNumber`,`issueDate`,`dueDate`,`status`,`subtotal`,`tax`,`total`,`createdAt`,`updatedAt`) VALUES (DEFAULT,?,?,?,?,?,?,?,?,?,?,?,?);
+Executing (default): INSERT INTO `invoiceItems` (`id`,`invoiceId`,`productId`,`name`,`description`,`quantity`,`unitPrice`,`total`,`createdAt`,`updatedAt`) VALUES (NULL,8,1,'Laptop','Dell Inspiron 15',2,250000,500000,'2026-08-04 09:13:36','2026-08-04 09:13:36'),(NULL,8,2,'Wireless Mouse','Logitech M185',1,4500,4500,'2026-08-04 09:13:36','2026-08-04 09:13:36');
+Executing (default): SELECT `id`, `userId`, `companyId`, `customerId`, `invoiceNumber`, `issueDate`, `dueDate`, `status`, `subtotal`, `tax`, `total`, `createdAt`, `updatedAt` FROM `invoices` AS `Invoice` WHERE `Invoice`.`id` = '8';
+Executing (default): UPDATE `invoices` SET `invoiceNumber`=?,`updatedAt`=? WHERE `id` = ?
+Executing (default): INSERT INTO `payments` (`id`,`invoiceId`,`userId`,`amount`,`method`,`reference`,`paymentDate`,`createdAt`,`updatedAt`) VALUES (DEFAULT,?,?,?,?,?,?,?,?);
+Executing (default): INSERT INTO `payments` (`id`,`invoiceId`,`userId`,`amount`,`method`,`reference`,`paymentDate`,`createdAt`,`updatedAt`) VALUES (DEFAULT,?,?,?,?,?,?,?,?);
+Executing (default): SELECT `id`, `invoiceId`, `userId`, `amount`, `method`, `reference`, `paymentDate`, `createdAt`, `updatedAt` FROM `payments` AS `Payment`;
+Executing (default): SELECT `id`, `invoiceId`, `userId`, `amount`, `method`, `reference`, `paymentDate`, `createdAt`, `updatedAt` FROM `payments` AS `Payment` WHERE `Payment`.`id` = '3';
+Executing (default): UPDATE `payments` SET `amount`=?,`method`=?,`updatedAt`=? WHERE `id` = ?
+Executing (default): SELECT `id`, `invoiceId`, `userId`, `amount`, `method`, `reference`, `paymentDate`, `createdAt`, `updatedAt` FROM `payments` AS `Payment` WHERE `Payment`.`id` = '3';
+Executing (default): DELETE FROM `payments` WHERE `id` = 3
+Executing (default): INSERT INTO `payments` (`id`,`invoiceId`,`userId`,`amount`,`method`,`reference`,`paymentDate`,`createdAt`,`updatedAt`) VALUES (DEFAULT,?,?,?,?,?,?,?,?);
