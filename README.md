@@ -2,7 +2,7 @@
 
 A lightweight, full-stack **invoice management** web application — register users, manage customers, products, and companies, build invoices with line items, track payments, and export your invoices as PDFs.
 
-> **Note:** This is a **demo project** built for learning and showcasing full-stack development patterns. It is intended to run locally and is **not hardened for production** (e.g. no auth-rate limiting, no HTTPS, static secret fallback).
+> **Note:** This is an **MVP** built to showcase full-stack development patterns. It is intended for local use and learning purposes and is **not hardened for production** (e.g. no auth-rate limiting, no HTTPS, static secret fallback).
 
 ---
 
@@ -99,4 +99,4 @@ Open your browser and visit **http://localhost:3000** (default port is `3000`).
 
 ## 🙋 Support
 
-This is This is an MVP — feel free to explore, adapt, and learn from it. Contributions and improvement ideas are welcome!
+This is an MVP — feel free to explore, adapt, and learn from it. Contributions and improvement ideas are welcome!
