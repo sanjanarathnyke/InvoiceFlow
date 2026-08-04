@@ -1,4 +1,10 @@
-const { Invoice, InvoiceItem } = require("../models");
+const {
+  Invoice,
+  InvoiceItem,
+  Customer,
+  Company,
+  Product,
+} = require("../models");
 
 exports.createInvoice = async (req, res) => {
   try {
@@ -10,16 +16,23 @@ exports.createInvoice = async (req, res) => {
       issueDate,
       dueDate,
       status = "draft",
-      taxRate = 0,
+      subtotal,
+      tax,
+      total,
       items = [],
     } = req.body;
 
-    let subtotal = 0;
-    items.forEach((item) => {
-      subtotal += item.quantity * item.unitPrice;
-    });
-    const tax = (subtotal * taxRate) / 100;
-    const total = subtotal + tax;
+    // Accept pre-calculated totals from frontend, or calculate from items
+    let calcSubtotal = subtotal !== undefined ? parseFloat(subtotal) : 0;
+    let calcTax = tax !== undefined ? parseFloat(tax) : 0;
+    let calcTotal = total !== undefined ? parseFloat(total) : 0;
+
+    if (subtotal === undefined && items.length > 0) {
+      items.forEach((item) => {
+        calcSubtotal += item.quantity * parseFloat(item.unitPrice);
+      });
+      calcTotal = calcSubtotal + calcTax;
+    }
 
     const invoice = await Invoice.create({
       userId,
@@ -29,9 +42,9 @@ exports.createInvoice = async (req, res) => {
       issueDate,
       dueDate,
       status,
-      subtotal,
-      tax,
-      total,
+      subtotal: calcSubtotal,
+      tax: calcTax,
+      total: calcTotal,
     });
 
     if (items.length > 0) {
@@ -41,8 +54,8 @@ exports.createInvoice = async (req, res) => {
         name: item.name,
         description: item.description || null,
         quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        total: item.quantity * item.unitPrice,
+        unitPrice: parseFloat(item.unitPrice),
+        total: item.quantity * parseFloat(item.unitPrice),
       }));
       await InvoiceItem.bulkCreate(invoiceItems);
     }
@@ -52,36 +65,49 @@ exports.createInvoice = async (req, res) => {
       invoice,
     });
   } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
+    res.status(500).json({ message: error.message });
   }
 };
 
 exports.getInvoices = async (req, res) => {
   try {
-    const invoices = await Invoice.findAll();
+    const invoices = await Invoice.findAll({
+      include: [
+        { model: Customer, attributes: ["id", "name", "email"] },
+        { model: Company, attributes: ["id", "name"] },
+      ],
+      order: [["id", "DESC"]],
+    });
     res.status(200).json(invoices);
   } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
+    res.status(500).json({ message: error.message });
   }
 };
 
 exports.getInvoice = async (req, res) => {
   try {
-    const invoice = await Invoice.findByPk(req.params.id);
+    const invoice = await Invoice.findByPk(req.params.id, {
+      include: [
+        {
+          model: Customer,
+          attributes: ["id", "name", "email", "phone", "address"],
+        },
+        {
+          model: Company,
+          attributes: ["id", "name", "email", "phone", "address", "taxNumber"],
+        },
+        {
+          model: InvoiceItem,
+          include: [{ model: Product, attributes: ["id", "name"] }],
+        },
+      ],
+    });
     if (!invoice) {
-      return res.status(404).json({
-        message: "Invoice not found",
-      });
+      return res.status(404).json({ message: "Invoice not found" });
     }
     res.status(200).json(invoice);
   } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -89,27 +115,31 @@ exports.updateInvoice = async (req, res) => {
   try {
     const invoice = await Invoice.findByPk(req.params.id);
     if (!invoice) {
-      return res.status(404).json({
-        message: "Invoice not found",
-      });
+      return res.status(404).json({ message: "Invoice not found" });
     }
 
     const {
       customerId,
+      companyId,
       invoiceNumber,
       issueDate,
       dueDate,
       status,
-      taxRate,
+      subtotal,
+      tax,
+      total,
     } = req.body;
 
     await invoice.update({
       customerId,
+      companyId,
       invoiceNumber,
       issueDate,
       dueDate,
       status,
-      taxRate,
+      subtotal,
+      tax,
+      total,
     });
 
     res.status(200).json({
@@ -117,9 +147,7 @@ exports.updateInvoice = async (req, res) => {
       invoice,
     });
   } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -127,17 +155,11 @@ exports.deleteInvoice = async (req, res) => {
   try {
     const invoice = await Invoice.findByPk(req.params.id);
     if (!invoice) {
-      return res.status(404).json({
-        message: "Invoice not found",
-      });
+      return res.status(404).json({ message: "Invoice not found" });
     }
     await invoice.destroy();
-    res.status(200).json({
-      message: "Invoice deleted successfully",
-    });
+    res.status(200).json({ message: "Invoice deleted successfully" });
   } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
+    res.status(500).json({ message: error.message });
   }
 };

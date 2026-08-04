@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>InvoiceFlow – Invoice Detail</title>
+  <meta name="description" content="View and manage an invoice in InvoiceFlow"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:["ui-monospace","SFMono-Regular","Menlo","Consolas","monospace"]}}}}</script>
+  <style>
+    body{font-family:"ui-monospace","SFMono-Regular",Menlo,Consolas,monospace;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    .fade-up{animation:fadeUp .5s ease both;}
+    .card{background:rgba(30,41,59,.6);backdrop-filter:blur(12px);border:1px solid rgba(51,65,85,.6);border-radius:1rem;}
+    select,input{color-scheme:dark;}
+    ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-thumb{background:#334155;border-radius:2px;}
+  </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 flex">
+  <div id="sidebar-placeholder"></div>
+  <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-40 lg:hidden hidden" onclick="closeSidebar()"></div>
+
+  <div class="flex-1 lg:ml-64 flex flex-col min-h-screen">
+    <header class="sticky top-0 z-30 flex items-center justify-between px-6 py-4 bg-slate-950/80 backdrop-blur border-b border-slate-800">
+      <div class="flex items-center gap-4">
+        <button onclick="toggleSidebar()" class="lg:hidden p-2 rounded-lg hover:bg-slate-800 text-slate-400">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div>
+          <h1 class="text-xl font-bold text-white" id="page-title">Invoice</h1>
+          <p class="text-slate-400 text-xs" id="page-sub">Loading…</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="download-btn" onclick="downloadPdf()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 text-white text-sm font-medium shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:-translate-y-0.5 transition-all">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          Download PDF
+        </button>
+        <a href="/invoices.html" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm transition-colors">← Back</a>
+      </div>
+    </header>
+
+    <main class="flex-1 p-6 space-y-5 max-w-5xl mx-auto w-full">
+      <div id="loading-state" class="card p-10 text-center fade-up">
+        <div class="inline-block w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p class="text-slate-400">Loading invoice…</p>
+      </div>
+
+      <div id="invoice-content" class="hidden space-y-5">
+        <!-- Header card -->
+        <div class="card p-6 fade-up">
+          <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-3 mb-2">
+                <h2 class="text-2xl font-bold text-white" id="inv-number-display">—</h2>
+                <span id="inv-status-badge"></span>
+              </div>
+              <div class="space-y-1 text-sm text-slate-400">
+                <p>Issue Date: <span class="text-slate-200" id="inv-issue-display">—</span></p>
+                <p>Due Date: <span class="text-slate-200" id="inv-due-display">—</span></p>
+              </div>
+            </div>
+            <div class="text-right">
+              <p class="text-slate-400 text-sm mb-1">Total Amount</p>
+              <p class="text-4xl font-extrabold text-transparent bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text" id="inv-total-display">$0.00</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Parties -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 fade-up" style="animation-delay:.05s">
+          <div class="card p-5">
+            <p class="text-slate-500 text-xs uppercase tracking-wider font-semibold mb-3">From (Company)</p>
+            <div id="company-info" class="space-y-0.5 text-sm text-slate-300">—</div>
+          </div>
+          <div class="card p-5">
+            <p class="text-slate-500 text-xs uppercase tracking-wider font-semibold mb-3">Bill To (Customer)</p>
+            <div id="customer-info" class="space-y-0.5 text-sm text-slate-300">—</div>
+          </div>
+        </div>
+
+        <!-- Line items -->
+        <div class="card fade-up" style="animation-delay:.1s">
+          <div class="px-5 py-4 border-b border-slate-700/50">
+            <h3 class="text-white font-semibold">Line Items</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-slate-700/50">
+                  <th class="text-left px-5 py-3 text-slate-400 font-medium">Item</th>
+                  <th class="text-left px-5 py-3 text-slate-400 font-medium">Description</th>
+                  <th class="text-left px-5 py-3 text-slate-400 font-medium">Qty</th>
+                  <th class="text-left px-5 py-3 text-slate-400 font-medium">Unit Price</th>
+                  <th class="text-left px-5 py-3 text-slate-400 font-medium">Total</th>
+                </tr>
+              </thead>
+              <tbody id="items-tbody"></tbody>
+            </table>
+          </div>
+          <div class="px-5 py-4 border-t border-slate-700/50 flex justify-end">
+            <div class="w-full max-w-xs space-y-2 text-sm">
+              <div class="flex justify-between"><span class="text-slate-400">Subtotal</span><span class="text-white" id="subtotal-display">$0.00</span></div>
+              <div class="flex justify-between"><span class="text-slate-400">Tax</span><span class="text-white" id="tax-display">$0.00</span></div>
+              <div class="flex justify-between text-base border-t border-slate-700 pt-2.5"><span class="text-white font-semibold">Total</span><span class="text-indigo-400 font-bold" id="total-display">$0.00</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Status Update + Record Payment -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 fade-up" style="animation-delay:.15s">
+          <div class="card p-5">
+            <h3 class="text-white font-semibold mb-4">Update Status</h3>
+            <div class="flex gap-3">
+              <select id="status-select" class="flex-1 bg-slate-900/80 border border-slate-600/60 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all">
+                <option value="draft">Draft</option>
+                <option value="pending">Pending</option>
+                <option value="paid">Paid</option>
+                <option value="overdue">Overdue</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+              <button id="update-status-btn" onclick="updateStatus()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 text-white text-sm font-medium hover:-translate-y-0.5 transition-all shadow-lg shadow-indigo-500/20">Update</button>
+            </div>
+          </div>
+          <div class="card p-5">
+            <h3 class="text-white font-semibold mb-4">Record Payment</h3>
+            <div class="space-y-3">
+              <div class="grid grid-cols-2 gap-3">
+                <input id="pay-amount" type="number" min="0" step="0.01" placeholder="Amount" class="bg-slate-900/80 border border-slate-600/60 text-slate-100 placeholder-slate-500 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"/>
+                <select id="pay-method" class="bg-slate-900/80 border border-slate-600/60 text-slate-100 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all">
+                  <option value="cash">Cash</option>
+                  <option value="bank_transfer">Bank Transfer</option>
+                  <option value="credit_card">Credit Card</option>
+                  <option value="cheque">Cheque</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <input id="pay-ref" type="text" placeholder="Reference (optional)" class="w-full bg-slate-900/80 border border-slate-600/60 text-slate-100 placeholder-slate-500 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"/>
+              <input id="pay-date" type="date" class="w-full bg-slate-900/80 border border-slate-600/60 text-slate-100 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"/>
+              <button onclick="recordPayment()" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors">Record Payment</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payments history -->
+        <div class="card fade-up" style="animation-delay:.2s">
+          <div class="px-5 py-4 border-b border-slate-700/50">
+            <h3 class="text-white font-semibold">Payment History</h3>
+          </div>
+          <div id="payments-section">
+            <div class="px-5 py-10 text-center text-slate-500 text-sm">No payments recorded yet.</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/utils.js"></script>
+  <script>
+    if (!API.requireAuth()) void 0;
+    fetch("/components/sidebar.html").then(r=>r.text()).then(html=>{
+      document.getElementById("sidebar-placeholder").outerHTML=html;
+      initNav();
+      const av=document.getElementById("nav-avatar");
+      if(av) av.textContent=(API.getUserName()||"U")[0].toUpperCase();
+    });
+    function toggleSidebar(){document.getElementById("sidebar")?.classList.toggle("-translate-x-full");document.getElementById("sidebar-overlay")?.classList.toggle("hidden");}
+    function closeSidebar(){document.getElementById("sidebar")?.classList.add("-translate-x-full");document.getElementById("sidebar-overlay")?.classList.add("hidden");}
+
+    const params = new URLSearchParams(location.search);
+    const invoiceId = params.get("id");
+    if (!invoiceId) window.location.href = "/invoices.html";
+
+    document.getElementById("pay-date").value = new Date().toISOString().split("T")[0];
+
+    let currentInvoice = null;
+
+    // ── PDF Download: direct download using html2pdf ──────────────────────────
+    function downloadPdf() {
+      if (!currentInvoice) { showToast("Invoice not loaded yet.", "error"); return; }
+
+      const inv   = currentInvoice;
+      const co    = inv.Company   || {};
+      const cust  = inv.Customer  || {};
+      const items = inv.InvoiceItems || [];
+
+      const statusColors = { paid:"#059669", pending:"#d97706", overdue:"#dc2626", draft:"#64748b", cancelled:"#ef4444" };
+      const statusBg     = { paid:"#d1fae5", pending:"#fef3c7", overdue:"#fee2e2", draft:"#f1f5f9", cancelled:"#fee2e2" };
+      const st  = (inv.status || "draft").toLowerCase();
+      const stC = statusColors[st] || "#64748b";
+      const stB = statusBg[st]     || "#f1f5f9";
+
+      const fmt  = (v) => new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(Number(v)||0);
+      const fmtD = (d) => d ? new Date(d).toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"}) : "—";
+
+      const itemRows = items.length
+        ? items.map((item, i) => `
+          <tr style="background:${i%2===0?"#f8fafc":"#ffffff"}">
+            <td style="padding:10px 14px;color:#1e293b;font-weight:500;border-bottom:1px solid #e2e8f0">${item.name||"—"}</td>
+            <td style="padding:10px 14px;color:#475569;border-bottom:1px solid #e2e8f0">${item.description||"—"}</td>
+            <td style="padding:10px 14px;color:#1e293b;text-align:center;border-bottom:1px solid #e2e8f0">${item.quantity}</td>
+            <td style="padding:10px 14px;color:#1e293b;text-align:right;border-bottom:1px solid #e2e8f0">${fmt(item.unitPrice)}</td>
+            <td style="padding:10px 14px;color:#1e293b;font-weight:600;text-align:right;border-bottom:1px solid #e2e8f0">${fmt(item.total)}</td>
+          </tr>`).join("")
+        : `<tr><td colspan="5" style="padding:20px;text-align:center;color:#94a3b8">No line items.</td></tr>`;
+
+      const coBlock = `
+        <p style="font-size:15px;font-weight:700;color:#1e293b;margin-bottom:4px">${co.name||"—"}</p>
+        ${co.address  ? `<p style="color:#475569;font-size:12px">${co.address}</p>`  : ""}
+        ${co.email    ? `<p style="color:#475569;font-size:12px">${co.email}</p>`    : ""}
+        ${co.phone    ? `<p style="color:#475569;font-size:12px">${co.phone}</p>`    : ""}
+        ${co.taxNumber? `<p style="color:#94a3b8;font-size:11px;margin-top:4px">Tax No: ${co.taxNumber}</p>` : ""}`;
+
+      const custBlock = `
+        <p style="font-size:15px;font-weight:700;color:#1e293b;margin-bottom:4px">${cust.name||"—"}</p>
+        ${cust.address ? `<p style="color:#475569;font-size:12px">${cust.address}</p>` : ""}
+        ${cust.email   ? `<p style="color:#475569;font-size:12px">${cust.email}</p>`   : ""}
+        ${cust.phone   ? `<p style="color:#475569;font-size:12px">${cust.phone}</p>`   : ""}`;
+
+      const generatedDate = new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"});
+      const invNum = inv.invoiceNumber || ("INV-" + inv.id);
+
+      const htmlContent = `
+<div style="width:794px;padding:52px 60px;background:#ffffff;color:#1e293b;font-family:'ui-monospace','SFMono-Regular',Menlo,Consolas,monospace;font-size:13px;line-height:1.6;box-sizing:border-box;">
+
+  <!-- Branding + Invoice Header -->
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px;padding-bottom:28px;border-bottom:3px solid #6366f1">
+    <div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        </div>
+        <span style="font-size:18px;font-weight:800;color:#1e293b;letter-spacing:-0.3px">InvoiceFlow</span>
+      </div>
+      <h1 style="font-size:30px;font-weight:800;color:#1e293b;letter-spacing:-0.5px">${invNum}</h1>
+      <span style="display:inline-block;margin-top:8px;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;background:${stB};color:${stC}">${inv.status || "draft"}</span>
+    </div>
+    <div style="text-align:right">
+      <p style="color:#94a3b8;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Total Due</p>
+      <p style="font-size:36px;font-weight:800;color:#6366f1">${fmt(inv.total)}</p>
+      <div style="margin-top:10px;font-size:12px;color:#64748b;line-height:1.8">
+        <p>Issued: <span style="color:#334155;font-weight:600">${fmtD(inv.issueDate)}</span></p>
+        <p>Due: <span style="color:#334155;font-weight:600">${fmtD(inv.dueDate)}</span></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- From / Bill To -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:36px">
+    <div style="padding:20px;background:#f8fafc;border-radius:12px;border-left:4px solid #6366f1">
+      <p style="font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">From</p>
+      ${coBlock}
+    </div>
+    <div style="padding:20px;background:#f8fafc;border-radius:12px;border-left:4px solid #8b5cf6">
+      <p style="font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">Bill To</p>
+      ${custBlock}
+    </div>
+  </div>
+
+  <!-- Items -->
+  <p style="font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px">Line Items</p>
+  <table style="width:100%;border-collapse:collapse;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0">
+    <thead>
+      <tr style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">
+        <th style="padding:12px 14px;text-align:left;color:white;font-size:11px;font-weight:600;letter-spacing:0.5px">ITEM</th>
+        <th style="padding:12px 14px;text-align:left;color:white;font-size:11px;font-weight:600;letter-spacing:0.5px">DESCRIPTION</th>
+        <th style="padding:12px 14px;text-align:center;color:white;font-size:11px;font-weight:600;letter-spacing:0.5px">QTY</th>
+        <th style="padding:12px 14px;text-align:right;color:white;font-size:11px;font-weight:600;letter-spacing:0.5px">UNIT PRICE</th>
+        <th style="padding:12px 14px;text-align:right;color:white;font-size:11px;font-weight:600;letter-spacing:0.5px">TOTAL</th>
+      </tr>
+    </thead>
+    <tbody>${itemRows}</tbody>
+  </table>
+
+  <!-- Totals -->
+  <div style="display:flex;justify-content:flex-end;margin-top:24px">
+    <div style="width:260px">
+      <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #e2e8f0">
+        <span style="color:#64748b;font-size:13px">Subtotal</span>
+        <span style="color:#1e293b;font-weight:500">${fmt(inv.subtotal)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #e2e8f0">
+        <span style="color:#64748b;font-size:13px">Tax</span>
+        <span style="color:#1e293b;font-weight:500">${fmt(inv.tax)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:14px 0;margin-top:4px">
+        <span style="color:#1e293b;font-size:16px;font-weight:700">Total</span>
+        <span style="color:#6366f1;font-size:20px;font-weight:800">${fmt(inv.total)}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="margin-top:52px;padding-top:20px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center">
+    <p style="color:#94a3b8;font-size:11px">Generated by <strong style="color:#6366f1">InvoiceFlow</strong> &middot; ${generatedDate}</p>
+    <p style="color:#94a3b8;font-size:11px">Thank you for choosing us!</p>
+  </div>
+</div>`;
+
+      const btn = document.getElementById("download-btn");
+      const originalHtml = btn.innerHTML;
+      btn.innerHTML = "Generating PDF...";
+      btn.disabled = true;
+
+      const opt = {
+        margin:       0,
+        filename:     `Invoice_${invNum}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF:        { unit: 'pt', format: 'a4', orientation: 'portrait' }
+      };
+
+      html2pdf().set(opt).from(htmlContent).save().then(() => {
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+        showToast("PDF downloaded successfully!", "success");
+      }).catch(err => {
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+        showToast("Failed to generate PDF", "error");
+      });
+    }
+
+    // ── Load invoice data ─────────────────────────────────────────────────────
+    async function loadInvoice() {
+      try {
+        const inv = await API.getInvoice(invoiceId);
+        currentInvoice = inv;
+
+        document.getElementById("loading-state").classList.add("hidden");
+        document.getElementById("invoice-content").classList.remove("hidden");
+
+        document.getElementById("page-title").textContent = inv.invoiceNumber || "Invoice #" + inv.id;
+        document.getElementById("page-sub").textContent = "Customer: " + (inv.Customer?.name || "—");
+        document.getElementById("inv-number-display").textContent = inv.invoiceNumber || "INV-" + inv.id;
+        document.getElementById("inv-status-badge").innerHTML = statusBadge(inv.status);
+        document.getElementById("inv-issue-display").textContent = fmtDate(inv.issueDate);
+        document.getElementById("inv-due-display").textContent = fmtDate(inv.dueDate);
+        document.getElementById("inv-total-display").textContent = fmtCurrency(inv.total);
+        document.getElementById("subtotal-display").textContent = fmtCurrency(inv.subtotal);
+        document.getElementById("tax-display").textContent = fmtCurrency(inv.tax);
+        document.getElementById("total-display").textContent = fmtCurrency(inv.total);
+        document.getElementById("status-select").value = inv.status || "draft";
+
+        const co = inv.Company;
+        document.getElementById("company-info").innerHTML = co
+          ? `<p class="font-semibold text-white">${co.name||"—"}</p>
+             <p>${co.address||"—"}</p><p>${co.email||""}</p><p>${co.phone||""}</p>`
+          : "—";
+
+        const cust = inv.Customer;
+        document.getElementById("customer-info").innerHTML = cust
+          ? `<p class="font-semibold text-white">${cust.name||"—"}</p>
+             <p>${cust.address||"—"}</p><p>${cust.email||""}</p><p>${cust.phone||""}</p>`
+          : "—";
+
+        const items = inv.InvoiceItems || [];
+        const tbody = document.getElementById("items-tbody");
+        if (!items.length) {
+          tbody.innerHTML = `<tr><td colspan="5" class="px-5 py-8 text-center text-slate-500">No line items.</td></tr>`;
+        } else {
+          tbody.innerHTML = items.map(item => `
+            <tr class="border-t border-slate-700/30">
+              <td class="px-5 py-3.5 font-medium text-slate-200">${item.name||"—"}</td>
+              <td class="px-5 py-3.5 text-slate-400">${item.description||"—"}</td>
+              <td class="px-5 py-3.5 text-slate-300">${item.quantity}</td>
+              <td class="px-5 py-3.5 text-slate-300">${fmtCurrency(item.unitPrice)}</td>
+              <td class="px-5 py-3.5 text-emerald-400 font-semibold">${fmtCurrency(item.total)}</td>
+            </tr>`).join("");
+        }
+
+        await loadPayments();
+      } catch(e) {
+        showToast("Failed to load invoice: " + e.message, "error");
+        document.getElementById("loading-state").innerHTML = `<p class="text-rose-400 text-center">Failed to load invoice: ${e.message}</p>`;
+      }
+    }
+
+    async function loadPayments() {
+      try {
+        const all = await API.getPayments();
+        const payments = (Array.isArray(all) ? all : []).filter(p => p.invoiceId == invoiceId);
+        const sec = document.getElementById("payments-section");
+        if (!payments.length) {
+          sec.innerHTML = `<div class="px-5 py-10 text-center text-slate-500 text-sm">No payments recorded yet.</div>`;
+          return;
+        }
+        sec.innerHTML = `<div class="overflow-x-auto"><table class="w-full text-sm">
+          <thead><tr class="border-b border-slate-700/50">
+            <th class="text-left px-5 py-3 text-slate-400 font-medium">Date</th>
+            <th class="text-left px-5 py-3 text-slate-400 font-medium">Amount</th>
+            <th class="text-left px-5 py-3 text-slate-400 font-medium">Method</th>
+            <th class="text-left px-5 py-3 text-slate-400 font-medium">Reference</th>
+            <th class="text-right px-5 py-3 text-slate-400 font-medium">Action</th>
+          </tr></thead>
+          <tbody>${payments.map(p => `
+            <tr class="border-t border-slate-700/30 hover:bg-slate-800/40 transition-colors">
+              <td class="px-5 py-3.5 text-slate-400">${fmtDate(p.paymentDate)}</td>
+              <td class="px-5 py-3.5 font-semibold text-emerald-400">${fmtCurrency(p.amount)}</td>
+              <td class="px-5 py-3.5 text-slate-300 capitalize">${p.method||"—"}</td>
+              <td class="px-5 py-3.5 text-slate-400">${p.reference||"—"}</td>
+              <td class="px-5 py-3.5 text-right">
+                <button onclick="deletePayment(${p.id})" class="p-2 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 transition-colors">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+              </td>
+            </tr>`).join("")}
+          </tbody></table></div>`;
+      } catch(e) { console.warn("Payments load failed", e); }
+    }
+
+    async function updateStatus() {
+      const status = document.getElementById("status-select").value;
+      try {
+        await API.updateInvoice(invoiceId, { ...currentInvoice, status });
+        document.getElementById("inv-status-badge").innerHTML = statusBadge(status);
+        showToast("Status updated to " + status, "success");
+        currentInvoice.status = status;
+      } catch(e) { showToast("Failed: " + e.message, "error"); }
+    }
+
+    async function recordPayment() {
+      const amount = parseFloat(document.getElementById("pay-amount").value);
+      const method = document.getElementById("pay-method").value;
+      const reference = document.getElementById("pay-ref").value.trim();
+      const paymentDate = document.getElementById("pay-date").value;
+      if (!amount || isNaN(amount) || amount <= 0) { showToast("Enter a valid amount.", "error"); return; }
+      if (!paymentDate) { showToast("Select a payment date.", "error"); return; }
+      try {
+        await API.createPayment({
+          invoiceId: parseInt(invoiceId),
+          userId: parseInt(API.getUserId()||1),
+          amount: amount.toFixed(2), method, reference, paymentDate
+        });
+        showToast("Payment recorded!", "success");
+        document.getElementById("pay-amount").value = "";
+        document.getElementById("pay-ref").value = "";
+        await loadPayments();
+      } catch(e) { showToast("Failed: " + e.message, "error"); }
+    }
+
+    async function deletePayment(id) {
+      const ok = await confirmDelete("Delete this payment record?");
+      if (!ok) return;
+      try {
+        await API.deletePayment(id);
+        showToast("Payment deleted.", "success");
+        loadPayments();
+      } catch(e) { showToast("Delete failed: " + e.message, "error"); }
+    }
+
+    loadInvoice();
+  </script>
+</body>
+</html>

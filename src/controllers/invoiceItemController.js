@@ -2,14 +2,8 @@ const { InvoiceItem } = require("../models");
 
 exports.createInvoiceItem = async (req, res) => {
   try {
-    const {
-      invoiceId,
-      productId,
-      name,
-      description,
-      quantity,
-      unitPrice,
-    } = req.body;
+    const { invoiceId, productId, name, description, quantity, unitPrice } =
+      req.body;
 
     const total = quantity * unitPrice;
 

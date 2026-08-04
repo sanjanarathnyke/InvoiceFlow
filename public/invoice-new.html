@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>InvoiceFlow – New Invoice</title>
+  <meta name="description" content="Create a new invoice with line items in InvoiceFlow"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:["ui-monospace","SFMono-Regular","Menlo","Consolas","monospace"]}}}}</script>
+  <style>
+    body{font-family:"ui-monospace","SFMono-Regular",Menlo,Consolas,monospace;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    .fade-up{animation:fadeUp .5s ease both;}
+    .card{background:rgba(30,41,59,.6);backdrop-filter:blur(12px);border:1px solid rgba(51,65,85,.6);border-radius:1rem;}
+    select,input{color-scheme:dark;}
+    ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-thumb{background:#334155;border-radius:2px;}
+  </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 flex">
+  <div id="sidebar-placeholder"></div>
+  <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-40 lg:hidden hidden" onclick="closeSidebar()"></div>
+
+  <div class="flex-1 lg:ml-64 flex flex-col min-h-screen">
+    <header class="sticky top-0 z-30 flex items-center justify-between px-6 py-4 bg-slate-950/80 backdrop-blur border-b border-slate-800">
+      <div class="flex items-center gap-4">
+        <button onclick="toggleSidebar()" class="lg:hidden p-2 rounded-lg hover:bg-slate-800 text-slate-400">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div>
+          <h1 class="text-xl font-bold text-white">New Invoice</h1>
+          <p class="text-slate-400 text-xs">Fill in the details below</p>
+        </div>
+      </div>
+      <a href="/invoices.html" class="text-slate-400 hover:text-white text-sm flex items-center gap-1 transition-colors">
+        ← Back to Invoices
+      </a>
+    </header>
+
+    <main class="flex-1 p-6">
+      <form id="invoice-form" novalidate class="space-y-6 max-w-4xl mx-auto">
+
+        <!-- Invoice Meta -->
+        <div class="card p-6 fade-up">
+          <h2 class="text-white font-semibold text-base mb-5 flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-indigo-500 text-white text-xs flex items-center justify-center font-bold">1</span>
+            Invoice Details
+          </h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+              <label class="block text-sm font-medium text-slate-300 mb-1.5">Invoice Number *</label>
+              <input id="inv-number" type="text" placeholder="INV-001" class="w-full bg-slate-900/80 border border-slate-600/60 text-slate-100 placeholder-slate-500 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"/>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-300 mb-1.5">Status</label>
+              <select id="inv-status" class="w-full bg-slate-900/80 border border-slate-600/60 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all">
+                <option value="draft">Draft</option>
+                <option value="pending">Pending</option>
+                <option value="paid">Paid</option>
+                <option value="overdue">Overdue</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-300 mb-1.5">Issue Date *</label>
+              <input id="inv-issue" type="date" class="w-full bg-slate-900/80 border border-slate-600/60 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"/>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-300 mb-1.5">Due Date *</label>
+              <input id="inv-due" type="date" class="w-full bg-slate-900/80 border border-slate-600/60 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"/>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-300 mb-1.5">Customer *</label>
+              <select id="inv-customer" class="w-full bg-slate-900/80 border border-slate-600/60 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all">
+                <option value="">— Select customer —</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-300 mb-1.5">Company *</label>
+              <select id="inv-company" class="w-full bg-slate-900/80 border border-slate-600/60 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all">
+                <option value="">— Select company —</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-300 mb-1.5">Tax (%)</label>
+              <input id="inv-tax" type="number" min="0" max="100" step="0.1" value="0" placeholder="0" class="w-full bg-slate-900/80 border border-slate-600/60 text-slate-100 placeholder-slate-500 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"/>
+            </div>
+          </div>
+        </div>
+
+        <!-- Line Items -->
+        <div class="card p-6 fade-up" style="animation-delay:.1s">
+          <div class="flex items-center justify-between mb-5">
+            <h2 class="text-white font-semibold text-base flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-indigo-500 text-white text-xs flex items-center justify-center font-bold">2</span>
+              Line Items
+            </h2>
+            <button type="button" id="add-item-btn" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm font-medium transition-colors">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              Add Item
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm min-w-[600px]">
+              <thead>
+                <tr class="border-b border-slate-700/50">
+                  <th class="text-left py-2.5 pr-3 text-slate-400 font-medium w-40">Product</th>
+                  <th class="text-left py-2.5 pr-3 text-slate-400 font-medium">Description</th>
+                  <th class="text-left py-2.5 pr-3 text-slate-400 font-medium w-20">Qty</th>
+                  <th class="text-left py-2.5 pr-3 text-slate-400 font-medium w-28">Unit Price</th>
+                  <th class="text-left py-2.5 pr-3 text-slate-400 font-medium w-28">Total</th>
+                  <th class="w-10"></th>
+                </tr>
+              </thead>
+              <tbody id="items-tbody"></tbody>
+            </table>
+          </div>
+          <div id="no-items" class="text-center py-8 text-slate-500 text-sm">No items added yet. Click "Add Item" to add a line item.</div>
+        </div>
+
+        <!-- Summary -->
+        <div class="card p-6 fade-up" style="animation-delay:.15s">
+          <h2 class="text-white font-semibold text-base mb-5 flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-indigo-500 text-white text-xs flex items-center justify-center font-bold">3</span>
+            Summary
+          </h2>
+          <div class="flex justify-end">
+            <div class="w-full max-w-xs space-y-3">
+              <div class="flex justify-between text-sm"><span class="text-slate-400">Subtotal</span><span class="text-white font-medium" id="sum-subtotal">$0.00</span></div>
+              <div class="flex justify-between text-sm"><span class="text-slate-400">Tax</span><span class="text-white font-medium" id="sum-tax">$0.00</span></div>
+              <div class="flex justify-between text-base border-t border-slate-700 pt-3"><span class="text-white font-semibold">Total</span><span class="text-indigo-400 font-bold text-lg" id="sum-total">$0.00</span></div>
+            </div>
+          </div>
+        </div>
+
+        <p id="form-err" class="text-rose-400 text-sm hidden"></p>
+
+        <!-- Actions -->
+        <div class="flex justify-end gap-3 fade-up" style="animation-delay:.2s">
+          <a href="/invoices.html" class="px-6 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium transition-colors">Cancel</a>
+          <button type="submit" id="create-btn" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 text-white text-sm font-semibold hover:-translate-y-0.5 transition-all shadow-lg shadow-indigo-500/20 flex items-center gap-2">
+            Create Invoice
+            <svg id="create-spinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+          </button>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/utils.js"></script>
+  <script>
+    if (!API.requireAuth()) void 0;
+    fetch("/components/sidebar.html").then(r=>r.text()).then(html=>{
+      document.getElementById("sidebar-placeholder").outerHTML=html;
+      initNav();
+      const av=document.getElementById("nav-avatar");
+      if(av) av.textContent=(API.getUserName()||"U")[0].toUpperCase();
+    });
+    function toggleSidebar(){document.getElementById("sidebar")?.classList.toggle("-translate-x-full");document.getElementById("sidebar-overlay")?.classList.toggle("hidden");}
+    function closeSidebar(){document.getElementById("sidebar")?.classList.add("-translate-x-full");document.getElementById("sidebar-overlay")?.classList.add("hidden");}
+
+    // Default dates
+    const today = new Date().toISOString().split("T")[0];
+    const nextMonth = new Date(Date.now() + 30*24*60*60*1000).toISOString().split("T")[0];
+    document.getElementById("inv-issue").value = today;
+    document.getElementById("inv-due").value = nextMonth;
+
+    let products = [];
+    let lineItems = [];
+    let itemCounter = 0;
+
+    async function init() {
+      try {
+        const [customers, companies, prods] = await Promise.all([
+          API.getCustomers(), API.getCompanies(), API.getProducts()
+        ]);
+        products = Array.isArray(prods) ? prods : [];
+
+        const cSel = document.getElementById("inv-customer");
+        (Array.isArray(customers) ? customers : []).forEach(c => {
+          cSel.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+        });
+
+        const coSel = document.getElementById("inv-company");
+        (Array.isArray(companies) ? companies : []).forEach(co => {
+          coSel.innerHTML += `<option value="${co.id}">${co.name}</option>`;
+        });
+      } catch(e) { showToast("Error loading data: " + e.message, "error"); }
+    }
+
+    function addItem(preset = null) {
+      const id = ++itemCounter;
+      lineItems.push({ id, productId: "", name: "", description: "", quantity: 1, unitPrice: 0 });
+      renderItems();
+      if (preset) {
+        const row = document.getElementById(`item-row-${id}`);
+        row.querySelector(".item-product").value = preset.id;
+        row.querySelector(".item-name").value = preset.name;
+        row.querySelector(".item-desc").value = preset.description || "";
+        row.querySelector(".item-price").value = preset.price;
+        updateItem(id, "productId", preset.id);
+        updateItem(id, "name", preset.name);
+        updateItem(id, "description", preset.description || "");
+        updateItem(id, "unitPrice", parseFloat(preset.price));
+      }
+    }
+
+    function renderItems() {
+      const tbody = document.getElementById("items-tbody");
+      document.getElementById("no-items").classList.toggle("hidden", lineItems.length > 0);
+      tbody.innerHTML = lineItems.map(item => `
+        <tr id="item-row-${item.id}" class="border-t border-slate-700/30">
+          <td class="py-3 pr-3">
+            <select class="item-product w-full bg-slate-900/80 border border-slate-600/60 text-slate-100 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all" onchange="onProductSelect(${item.id}, this.value)">
+              <option value="">— Select —</option>
+              ${products.map(p => `<option value="${p.id}" ${p.id==item.productId?"selected":""}>${p.name}</option>`).join("")}
+            </select>
+          </td>
+          <td class="py-3 pr-3">
+            <input type="text" class="item-name w-full bg-slate-900/80 border border-slate-600/60 text-slate-100 placeholder-slate-500 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all" placeholder="Item name" value="${item.name}" oninput="updateItem(${item.id},'name',this.value)"/>
+          </td>
+          <td class="py-3 pr-3">
+            <input type="number" class="item-qty w-full bg-slate-900/80 border border-slate-600/60 text-slate-100 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all" min="1" value="${item.quantity}" oninput="updateItem(${item.id},'quantity',parseInt(this.value)||1)"/>
+          </td>
+          <td class="py-3 pr-3">
+            <input type="number" class="item-price w-full bg-slate-900/80 border border-slate-600/60 text-slate-100 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all" min="0" step="0.01" value="${item.unitPrice}" oninput="updateItem(${item.id},'unitPrice',parseFloat(this.value)||0)"/>
+          </td>
+          <td class="py-3 pr-3 text-emerald-400 font-semibold text-xs" id="item-total-${item.id}">${fmtCurrency(item.quantity * item.unitPrice)}</td>
+          <td class="py-3">
+            <button type="button" onclick="removeItem(${item.id})" class="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-400/10 transition-colors">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </td>
+        </tr>`).join("");
+      recalculate();
+    }
+
+    function onProductSelect(id, productId) {
+      const prod = products.find(p => String(p.id) === String(productId));
+      if (!prod) return;
+      const item = lineItems.find(i => i.id === id);
+      if (!item) return;
+      item.productId   = prod.id;
+      item.name        = prod.name;
+      item.description = prod.description || "";
+      item.unitPrice   = parseFloat(prod.price) || 0;
+      const row = document.getElementById(`item-row-${id}`);
+      row.querySelector(".item-name").value  = item.name;
+      row.querySelector(".item-price").value = item.unitPrice;
+      document.getElementById(`item-total-${id}`).textContent = fmtCurrency(item.quantity * item.unitPrice);
+      recalculate();
+    }
+
+    function updateItem(id, field, value) {
+      const item = lineItems.find(i => i.id === id);
+      if (!item) return;
+      item[field] = value;
+      document.getElementById(`item-total-${id}`).textContent = fmtCurrency(item.quantity * item.unitPrice);
+      recalculate();
+    }
+
+    function removeItem(id) {
+      lineItems = lineItems.filter(i => i.id !== id);
+      renderItems();
+    }
+
+    function recalculate() {
+      const subtotal = lineItems.reduce((s,i) => s + (i.quantity * i.unitPrice), 0);
+      const taxPct = parseFloat(document.getElementById("inv-tax").value) || 0;
+      const taxAmt = subtotal * (taxPct / 100);
+      const total = subtotal + taxAmt;
+      document.getElementById("sum-subtotal").textContent = fmtCurrency(subtotal);
+      document.getElementById("sum-tax").textContent = fmtCurrency(taxAmt);
+      document.getElementById("sum-total").textContent = fmtCurrency(total);
+    }
+
+    document.getElementById("add-item-btn").onclick = () => addItem();
+    document.getElementById("inv-tax").addEventListener("input", recalculate);
+
+    document.getElementById("invoice-form").addEventListener("submit", async e => {
+      e.preventDefault();
+      const errEl = document.getElementById("form-err");
+      const btn = document.getElementById("create-btn");
+      const sp = document.getElementById("create-spinner");
+
+      const invoiceNumber = document.getElementById("inv-number").value.trim();
+      const customerId = document.getElementById("inv-customer").value;
+      const companyId  = document.getElementById("inv-company").value;
+      const issueDate  = document.getElementById("inv-issue").value;
+      const dueDate    = document.getElementById("inv-due").value;
+      const status     = document.getElementById("inv-status").value;
+      const taxPct     = parseFloat(document.getElementById("inv-tax").value) || 0;
+
+      if (!invoiceNumber) { errEl.textContent="Invoice number is required."; errEl.classList.remove("hidden"); return; }
+      if (!customerId)    { errEl.textContent="Please select a customer."; errEl.classList.remove("hidden"); return; }
+      if (!companyId)     { errEl.textContent="Please select a company."; errEl.classList.remove("hidden"); return; }
+      if (!issueDate || !dueDate) { errEl.textContent="Issue and due dates are required."; errEl.classList.remove("hidden"); return; }
+      if (!lineItems.length) { errEl.textContent="Add at least one line item."; errEl.classList.remove("hidden"); return; }
+
+      errEl.classList.add("hidden");
+      btn.disabled=true; sp.classList.remove("hidden");
+
+      const subtotal = lineItems.reduce((s,i) => s + (i.quantity * i.unitPrice), 0);
+      const tax = subtotal * (taxPct/100);
+      const total = subtotal + tax;
+
+      try {
+        const inv = await API.createInvoice({
+          userId: parseInt(API.getUserId()||1),
+          companyId: parseInt(companyId),
+          customerId: parseInt(customerId),
+          invoiceNumber, issueDate, dueDate, status,
+          subtotal: subtotal.toFixed(2),
+          tax: tax.toFixed(2),
+          total: total.toFixed(2),
+          items: lineItems.map(item => ({
+            productId: item.productId || null,
+            name: item.name,
+            description: item.description,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice.toFixed(2),
+            total: (item.quantity * item.unitPrice).toFixed(2)
+          }))
+        });
+
+        const invoiceId = inv.invoice?.id || inv.id;
+        showToast("Invoice created successfully!", "success");
+        setTimeout(() => window.location.href = `/invoice-detail.html?id=${invoiceId}`, 800);
+      } catch(err) {
+        errEl.textContent = err.message || "Failed to create invoice.";
+        errEl.classList.remove("hidden");
+        btn.disabled=false; sp.classList.add("hidden");
+      }
+    });
+
+    init();
+  </script>
+</body>
+</html>

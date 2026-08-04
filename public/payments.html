@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>InvoiceFlow – Payments</title>
+  <meta name="description" content="View all payment records in InvoiceFlow"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:["ui-monospace","SFMono-Regular","Menlo","Consolas","monospace"]}}}}</script>
+  <style>
+    body{font-family:"ui-monospace","SFMono-Regular",Menlo,Consolas,monospace;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    .fade-up{animation:fadeUp .5s ease both;}
+    .card{background:rgba(30,41,59,.6);backdrop-filter:blur(12px);border:1px solid rgba(51,65,85,.6);border-radius:1rem;}
+    ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-thumb{background:#334155;border-radius:2px;}
+  </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 flex">
+  <div id="sidebar-placeholder"></div>
+  <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-40 lg:hidden hidden" onclick="closeSidebar()"></div>
+
+  <div class="flex-1 lg:ml-64 flex flex-col min-h-screen">
+    <header class="sticky top-0 z-30 flex items-center justify-between px-6 py-4 bg-slate-950/80 backdrop-blur border-b border-slate-800">
+      <div class="flex items-center gap-4">
+        <button onclick="toggleSidebar()" class="lg:hidden p-2 rounded-lg hover:bg-slate-800 text-slate-400">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div>
+          <h1 class="text-xl font-bold text-white">Payments</h1>
+          <p class="text-slate-400 text-xs" id="payment-count">Loading…</p>
+        </div>
+      </div>
+      <!-- Total collected badge -->
+      <div class="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-xl">
+        <span class="text-emerald-400 text-sm font-semibold">Total:</span>
+        <span class="text-emerald-300 font-bold" id="total-collected">$0.00</span>
+      </div>
+    </header>
+
+    <main class="flex-1 p-6 space-y-5">
+      <!-- Search -->
+      <div class="mb-5 fade-up">
+        <div class="relative max-w-sm">
+          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          </span>
+          <input id="search-input" type="text" placeholder="Search by invoice or method…"
+            class="w-full bg-slate-800/80 border border-slate-600/60 text-slate-100 placeholder-slate-500 rounded-xl pl-11 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"/>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="card fade-up" style="animation-delay:.1s">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-slate-700/50">
+                <th class="text-left px-6 py-3.5 text-slate-400 font-medium">Invoice</th>
+                <th class="text-left px-6 py-3.5 text-slate-400 font-medium">Date</th>
+                <th class="text-left px-6 py-3.5 text-slate-400 font-medium">Amount</th>
+                <th class="text-left px-6 py-3.5 text-slate-400 font-medium">Method</th>
+                <th class="text-left px-6 py-3.5 text-slate-400 font-medium">Reference</th>
+                <th class="text-right px-6 py-3.5 text-slate-400 font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="payments-tbody"></tbody>
+          </table>
+        </div>
+        <div id="empty-state" class="hidden text-center py-16">
+          <div class="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center mx-auto mb-4 text-3xl">💳</div>
+          <p class="text-slate-400 text-base font-medium">No payments recorded</p>
+          <p class="text-slate-500 text-sm mt-1">Record payments from individual invoice pages</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/utils.js"></script>
+  <script>
+    if (!API.requireAuth()) void 0;
+    fetch("/components/sidebar.html").then(r=>r.text()).then(html=>{
+      document.getElementById("sidebar-placeholder").outerHTML=html;
+      initNav();
+      const av=document.getElementById("nav-avatar");
+      if(av) av.textContent=(API.getUserName()||"U")[0].toUpperCase();
+    });
+    function toggleSidebar(){document.getElementById("sidebar")?.classList.toggle("-translate-x-full");document.getElementById("sidebar-overlay")?.classList.toggle("hidden");}
+    function closeSidebar(){document.getElementById("sidebar")?.classList.add("-translate-x-full");document.getElementById("sidebar-overlay")?.classList.add("hidden");}
+
+    let allPayments = [];
+    const methodLabels = { cash:"Cash", bank_transfer:"Bank Transfer", credit_card:"Credit Card", cheque:"Cheque", other:"Other" };
+    const methodIcon   = { cash:"💵", bank_transfer:"🏦", credit_card:"💳", cheque:"📝", other:"🔁" };
+
+    async function loadPayments() {
+      document.getElementById("payments-tbody").innerHTML = skeletonRows(6, 5);
+      try {
+        allPayments = await API.getPayments();
+        renderTable(allPayments);
+      } catch(e) { showToast("Failed to load payments: " + e.message, "error"); }
+    }
+
+    function renderTable(data) {
+      const tbody = document.getElementById("payments-tbody");
+      const empty = document.getElementById("empty-state");
+      const total = data.reduce((s,p) => s + parseFloat(p.amount||0), 0);
+      document.getElementById("payment-count").textContent = `${data.length} payment${data.length!==1?"s":""}`;
+      document.getElementById("total-collected").textContent = fmtCurrency(total);
+      if (!data.length) { tbody.innerHTML=""; empty.classList.remove("hidden"); return; }
+      empty.classList.add("hidden");
+      tbody.innerHTML = data.map(p => `
+        <tr class="border-t border-slate-700/30 hover:bg-slate-800/40 transition-colors cursor-pointer" onclick="location.href='/invoice-detail.html?id=${p.invoiceId}'">
+          <td class="px-6 py-4">
+            <span class="text-indigo-400 font-semibold hover:text-indigo-300">Invoice #${p.invoiceId}</span>
+          </td>
+          <td class="px-6 py-4 text-slate-400">${fmtDate(p.paymentDate)}</td>
+          <td class="px-6 py-4 font-bold text-emerald-400">${fmtCurrency(p.amount)}</td>
+          <td class="px-6 py-4">
+            <span class="inline-flex items-center gap-1.5 text-slate-300">
+              <span>${methodIcon[p.method]||"🔁"}</span>
+              <span>${methodLabels[p.method]||p.method||"—"}</span>
+            </span>
+          </td>
+          <td class="px-6 py-4 text-slate-400">${p.reference||"—"}</td>
+          <td class="px-6 py-4" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-end">
+              <button onclick="deletePayment(${p.id})" class="p-2 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 transition-colors" title="Delete">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </div>
+          </td>
+        </tr>`).join("");
+    }
+
+    document.getElementById("search-input").addEventListener("input", e => {
+      const q = e.target.value.toLowerCase();
+      renderTable(allPayments.filter(p =>
+        String(p.invoiceId).includes(q) || (p.method||"").toLowerCase().includes(q) || (p.reference||"").toLowerCase().includes(q)
+      ));
+    });
+
+    async function deletePayment(id) {
+      const ok = await confirmDelete("Delete this payment? This action cannot be undone.");
+      if (!ok) return;
+      try {
+        await API.deletePayment(id);
+        showToast("Payment deleted.", "success");
+        loadPayments();
+      } catch(e) { showToast("Delete failed: " + e.message, "error"); }
+    }
+
+    loadPayments();
+  </script>
+</body>
+</html>

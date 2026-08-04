@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>InvoiceFlow – Company Settings</title>
+  <meta name="description" content="Manage your company profile in InvoiceFlow"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:["ui-monospace","SFMono-Regular","Menlo","Consolas","monospace"]}}}}</script>
+  <style>
+    body{font-family:"ui-monospace","SFMono-Regular",Menlo,Consolas,monospace;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    .fade-up{animation:fadeUp .5s ease both;}
+    .card{background:rgba(30,41,59,.6);backdrop-filter:blur(12px);border:1px solid rgba(51,65,85,.6);border-radius:1rem;}
+    ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-thumb{background:#334155;border-radius:2px;}
+    input:-webkit-autofill{-webkit-box-shadow:0 0 0 100px #1e293b inset!important;-webkit-text-fill-color:#f8fafc!important;}
+  </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 flex">
+  <div id="sidebar-placeholder"></div>
+  <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-40 lg:hidden hidden" onclick="closeSidebar()"></div>
+
+  <div class="flex-1 lg:ml-64 flex flex-col min-h-screen">
+    <header class="sticky top-0 z-30 flex items-center justify-between px-6 py-4 bg-slate-950/80 backdrop-blur border-b border-slate-800">
+      <div class="flex items-center gap-4">
+        <button onclick="toggleSidebar()" class="lg:hidden p-2 rounded-lg hover:bg-slate-800 text-slate-400">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div>
+          <h1 class="text-xl font-bold text-white">Company Settings</h1>
+          <p class="text-slate-400 text-xs">Manage your business profile</p>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 p-6 max-w-2xl mx-auto w-full">
+      <div id="loading-card" class="card p-10 text-center fade-up">
+        <div class="inline-block w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p class="text-slate-400">Loading company…</p>
+      </div>
+
+      <div id="company-card" class="hidden">
+        <!-- Company avatar preview -->
+        <div class="card p-6 fade-up mb-5">
+          <div class="flex items-center gap-5">
+            <div id="company-avatar" class="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-3xl font-bold text-white shadow-lg shadow-indigo-500/20">?</div>
+            <div class="flex-1">
+              <h2 class="text-white font-bold text-xl" id="company-name-display">Your Company</h2>
+              <p class="text-slate-400 text-sm" id="company-email-display">—</p>
+            </div>
+            <button type="button" id="new-company-btn" onclick="resetCompanyForm()" class="hidden px-4 py-2 rounded-xl bg-slate-800/80 border border-slate-600/60 text-slate-200 text-sm font-semibold hover:bg-slate-700 hover:text-white transition-all flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              Create Company
+            </button>
+          </div>
+        </div>
+
+        <!-- Form -->
+        <div class="card p-6 fade-up" style="animation-delay:.1s">
+          <h2 class="text-white font-semibold text-base mb-5">Company Information</h2>
+          <form id="company-form" novalidate>
+            <input type="hidden" id="company-id"/>
+            <div class="space-y-5">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div class="sm:col-span-2">
+                  <label class="block text-sm font-medium text-slate-300 mb-1.5">Company Name *</label>
+                  <input id="co-name" type="text" placeholder="Acme Corporation" class="w-full bg-slate-900/80 border border-slate-600/60 text-slate-100 placeholder-slate-500 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" oninput="previewName(this.value)"/>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-300 mb-1.5">Email</label>
+                  <input id="co-email" type="email" placeholder="info@company.com" class="w-full bg-slate-900/80 border border-slate-600/60 text-slate-100 placeholder-slate-500 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" oninput="previewEmail(this.value)"/>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-300 mb-1.5">Phone</label>
+                  <input id="co-phone" type="tel" placeholder="+1 (555) 000-0000" class="w-full bg-slate-900/80 border border-slate-600/60 text-slate-100 placeholder-slate-500 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"/>
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="block text-sm font-medium text-slate-300 mb-1.5">Address</label>
+                  <textarea id="co-address" placeholder="123 Business Ave, Suite 100, City, Country" rows="2" class="w-full bg-slate-900/80 border border-slate-600/60 text-slate-100 placeholder-slate-500 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none"></textarea>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-300 mb-1.5">Tax Number</label>
+                  <input id="co-tax" type="text" placeholder="VAT / GST / EIN number" class="w-full bg-slate-900/80 border border-slate-600/60 text-slate-100 placeholder-slate-500 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"/>
+                </div>
+              </div>
+
+              <p id="form-err" class="text-rose-400 text-sm hidden"></p>
+
+              <div class="flex gap-3 justify-end pt-2 border-t border-slate-700/50">
+                <button type="submit" id="save-btn" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 text-white text-sm font-semibold hover:-translate-y-0.5 transition-all shadow-lg shadow-indigo-500/20 flex items-center gap-2">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                  <span id="save-label">Save Changes</span>
+                  <svg id="save-spinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/utils.js"></script>
+  <script>
+    if (!API.requireAuth()) void 0;
+    fetch("/components/sidebar.html").then(r=>r.text()).then(html=>{
+      document.getElementById("sidebar-placeholder").outerHTML=html;
+      initNav();
+      const av=document.getElementById("nav-avatar");
+      if(av) av.textContent=(API.getUserName()||"U")[0].toUpperCase();
+    });
+    function toggleSidebar(){document.getElementById("sidebar")?.classList.toggle("-translate-x-full");document.getElementById("sidebar-overlay")?.classList.toggle("hidden");}
+    function closeSidebar(){document.getElementById("sidebar")?.classList.add("-translate-x-full");document.getElementById("sidebar-overlay")?.classList.add("hidden");}
+
+    function previewName(val) {
+      document.getElementById("company-name-display").textContent = val || "Your Company";
+      document.getElementById("company-avatar").textContent = (val||"?")[0].toUpperCase();
+    }
+    function previewEmail(val) {
+      document.getElementById("company-email-display").textContent = val || "—";
+    }
+
+    function resetCompanyForm() {
+      existingCompany = null;
+      document.getElementById("company-id").value = "";
+      document.getElementById("co-name").value = "";
+      document.getElementById("co-email").value = "";
+      document.getElementById("co-phone").value = "";
+      document.getElementById("co-address").value = "";
+      document.getElementById("co-tax").value = "";
+      document.getElementById("form-err").classList.add("hidden");
+      document.getElementById("save-label").textContent = "Create Company";
+      document.getElementById("new-company-btn").classList.add("hidden");
+      previewName("");
+      previewEmail("");
+      document.getElementById("co-name").focus();
+    }
+
+    let existingCompany = null;
+
+    async function loadCompany() {
+      try {
+        const companies = await API.getCompanies();
+        const list = Array.isArray(companies) ? companies : [];
+        existingCompany = list.find(c => String(c.userId) === String(API.getUserId())) || list[0] || null;
+
+        document.getElementById("loading-card").classList.add("hidden");
+        document.getElementById("company-card").classList.remove("hidden");
+
+        if (existingCompany) {
+          document.getElementById("company-id").value = existingCompany.id;
+          document.getElementById("co-name").value    = existingCompany.name || "";
+          document.getElementById("co-email").value   = existingCompany.email || "";
+          document.getElementById("co-phone").value   = existingCompany.phone || "";
+          document.getElementById("co-address").value = existingCompany.address || "";
+          document.getElementById("co-tax").value     = existingCompany.taxNumber || "";
+          previewName(existingCompany.name);
+          previewEmail(existingCompany.email);
+          document.getElementById("save-label").textContent = "Save Changes";
+          document.getElementById("new-company-btn").classList.remove("hidden");
+        } else {
+          document.getElementById("save-label").textContent = "Create Company";
+          document.getElementById("new-company-btn").classList.add("hidden");
+        }
+      } catch(e) {
+        showToast("Failed to load company: " + e.message, "error");
+        document.getElementById("loading-card").innerHTML = `<p class="text-rose-400">Failed to load: ${e.message}</p>`;
+      }
+    }
+
+    document.getElementById("company-form").addEventListener("submit", async e => {
+      e.preventDefault();
+      const id       = document.getElementById("company-id").value;
+      const name     = document.getElementById("co-name").value.trim();
+      const email    = document.getElementById("co-email").value.trim();
+      const phone    = document.getElementById("co-phone").value.trim();
+      const address  = document.getElementById("co-address").value.trim();
+      const taxNumber = document.getElementById("co-tax").value.trim();
+      const errEl    = document.getElementById("form-err");
+      const btn      = document.getElementById("save-btn");
+      const sp       = document.getElementById("save-spinner");
+
+      if (!name) { errEl.textContent="Company name is required."; errEl.classList.remove("hidden"); return; }
+      errEl.classList.add("hidden");
+      btn.disabled=true; sp.classList.remove("hidden");
+
+      const payload = { userId: parseInt(API.getUserId()||1), name, email, phone, address, taxNumber };
+      try {
+        if (id) {
+          await API.updateCompany(id, payload);
+          showToast("Company updated!", "success");
+        } else {
+          const result = await API.createCompany(payload);
+          const newId = result.company?.id || result.id;
+          if (newId) document.getElementById("company-id").value = newId;
+          document.getElementById("save-label").textContent = "Save Changes";
+          document.getElementById("new-company-btn").classList.remove("hidden");
+          previewName(name);
+          previewEmail(email);
+          showToast("Company created!", "success");
+        }
+      } catch(err) {
+        errEl.textContent = err.message || "Save failed.";
+        errEl.classList.remove("hidden");
+      } finally { btn.disabled=false; sp.classList.add("hidden"); }
+    });
+
+    loadCompany();
+  </script>
+</body>
+</html>
